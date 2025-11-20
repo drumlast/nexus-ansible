@@ -48,18 +48,17 @@
         mode: "0644"
 
     - name: Unpack Nexus
-      become: true     # ← FIX: убрано become_user, вызывает ошибки
+      become: true
+      become_user: "{{ nexus_user_name }}"
       unarchive:
-        copy: no
-        creates: "{{ nexus_directory_package }}/nexus-{{ nexus_version }}"
-        dest: "{{ nexus_directory_package }}"
         src: "{{ nexus_directory_package }}/nexus-{{ nexus_version }}.tar.gz"
+        dest: "{{ nexus_directory_package }}"
         remote_src: yes
-        owner: "{{ nexus_user_name }}"
-        group: "{{ nexus_user_group }}"
+        creates: "{{ nexus_directory_package }}/nexus-{{ nexus_version }}"
+
 
     - name: Link to Nexus Directory
-      become: true     # ← FIX: nexus user не имеет прав в /home
+      become: true
       file:
         dest: "{{ nexus_directory_home }}"
         src: "{{ nexus_directory_package }}/nexus-{{ nexus_version }}"
@@ -68,7 +67,7 @@
         group: "{{ nexus_user_group }}"
 
     - name: Add NEXUS_HOME for Nexus user
-      become: true     # ← FIX: file in home must be written as root
+      become: true
       lineinfile:
         create: yes
         dest: "/home/{{ nexus_user_name }}/.bashrc"
@@ -76,7 +75,7 @@
         line: "export NEXUS_HOME={{ nexus_directory_home }}"
 
     - name: Add run_as_user to Nexus.rc
-      become: true     # ← FIX: nexus.rc owned by root initially
+      become: true
       lineinfile:
         create: yes
         dest: "{{ nexus_directory_home }}/bin/nexus.rc"
@@ -109,7 +108,7 @@
         - nexus_service_enabled
 
     - name: Create Nexus vmoptions
-      become: true     # ← FIX: avoid permission denied
+      become: true
       template:
         dest: "{{ nexus_directory_home }}/bin/nexus.vmoptions"
         src: nexus.vmoptions.j2
@@ -118,7 +117,7 @@
       register: nexus_config_changed
 
     - name: Create Nexus properties
-      become: true     # ← FIX
+      become: true
       template:
         dest: "{{ nexus_directory_data }}/etc/nexus.properties"
         src: nexus.properties.j2
@@ -127,7 +126,7 @@
       register: nexus_config_changed
 
     - name: Lower Nexus disk space threshold
-      become: true     # ← FIX: system.properties is root-owned
+      become: true
       lineinfile:
         backrefs: yes
         dest: "{{ nexus_directory_home }}/etc/karaf/system.properties"

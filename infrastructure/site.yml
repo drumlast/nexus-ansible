@@ -49,13 +49,20 @@
 
     - name: Unpack Nexus
       become: true
-      become_user: "{{ nexus_user_name }}"
       unarchive:
-        src: "{{ nexus_directory_package }}/nexus-{{ nexus_version }}.tar.gz"
-        dest: "{{ nexus_directory_package }}"
-        remote_src: yes
+        copy: no
         creates: "{{ nexus_directory_package }}/nexus-{{ nexus_version }}"
+        dest: "{{ nexus_directory_package }}"
+        src: "{{ nexus_directory_package }}/nexus-{{ nexus_version }}.tar.gz"
 
+    - name: Fix permissions on unpacked directory
+      become: true
+      file:
+        path: "{{ nexus_directory_package }}/nexus-{{ nexus_version }}"
+        state: directory
+        recurse: true
+        owner: "{{ nexus_user_name }}"
+        group: "{{ nexus_user_group }}"
 
     - name: Link to Nexus Directory
       become: true

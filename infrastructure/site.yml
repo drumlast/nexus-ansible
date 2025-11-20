@@ -7,10 +7,12 @@
       group:
         name: "{{ nexus_user_group }}"
         state: present
+
     - name: Create Nexus user
       become: true
       user:
         name: "{{ nexus_user_name }}"
+
     - name: Install JDK
       become: true
       package:
@@ -45,22 +47,14 @@
         path: "{{ nexus_directory_package }}/nexus-{{ nexus_version }}.tar.gz"
         owner: "{{ nexus_user_name }}"
         group: "{{ nexus_user_group }}"
-        mode: "0644"
 
     - name: Unpack Nexus
       become: true
       unarchive:
-        copy: no
-        creates: "{{ nexus_directory_package }}/nexus-{{ nexus_version }}"
-        dest: "{{ nexus_directory_package }}"
         src: "{{ nexus_directory_package }}/nexus-{{ nexus_version }}.tar.gz"
-
-    - name: Fix permissions on unpacked directory
-      become: true
-      file:
-        path: "{{ nexus_directory_package }}/nexus-{{ nexus_version }}"
-        state: directory
-        recurse: true
+        dest: "{{ nexus_directory_package }}"
+        remote_src: yes
+        creates: "{{ nexus_directory_package }}/nexus-{{ nexus_version }}"
         owner: "{{ nexus_user_name }}"
         group: "{{ nexus_user_group }}"
 
@@ -80,6 +74,8 @@
         dest: "/home/{{ nexus_user_name }}/.bashrc"
         insertafter: EOF
         line: "export NEXUS_HOME={{ nexus_directory_home }}"
+        owner: "{{ nexus_user_name }}"
+        group: "{{ nexus_user_group }}"
 
     - name: Add run_as_user to Nexus.rc
       become: true
@@ -89,6 +85,8 @@
         insertafter: EOF
         line: "run_as_user=\"{{ nexus_user_name }}\""
         regexp: "^run_as_user"
+        owner: "{{ nexus_user_name }}"
+        group: "{{ nexus_user_group }}"
 
     - name: Raise nofile limit for Nexus user
       become: true
@@ -140,6 +138,8 @@
         insertafter: EOF
         line: "storage.diskCache.diskFreeSpaceLimit={{ nexus_configuration_disk_free_space_limit }}"
         regexp: ^storage\.diskCache\.diskFreeSpaceLimit
+        owner: "{{ nexus_user_name }}"
+        group: "{{ nexus_user_group }}"
       when: nexus_configuration_disk_free_space_limit is not none
       register: nexus_config_changed
 

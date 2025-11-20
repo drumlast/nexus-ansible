@@ -16,6 +16,7 @@
       package:
         name: [openjdk-8-jdk]
         state: present
+
   tasks:
     - name: Create Nexus directories
       become: true
@@ -44,27 +45,30 @@
         path: "{{ nexus_directory_package }}/nexus-{{ nexus_version }}.tar.gz"
         owner: "{{ nexus_user_name }}"
         group: "{{ nexus_user_group }}"
+        mode: "0644"
 
     - name: Unpack Nexus
-      become: true
-      become_user: "{{ nexus_user_name }}"
+      become: true     # ← FIX: убрано become_user, вызывает ошибки
       unarchive:
         copy: no
         creates: "{{ nexus_directory_package }}/nexus-{{ nexus_version }}"
         dest: "{{ nexus_directory_package }}"
         src: "{{ nexus_directory_package }}/nexus-{{ nexus_version }}.tar.gz"
+        remote_src: yes
+        owner: "{{ nexus_user_name }}"
+        group: "{{ nexus_user_group }}"
 
     - name: Link to Nexus Directory
-      become: true
-      become_user: "{{ nexus_user_name }}"
+      become: true     # ← FIX: nexus user не имеет прав в /home
       file:
         dest: "{{ nexus_directory_home }}"
         src: "{{ nexus_directory_package }}/nexus-{{ nexus_version }}"
         state: link
+        owner: "{{ nexus_user_name }}"
+        group: "{{ nexus_user_group }}"
 
     - name: Add NEXUS_HOME for Nexus user
-      become: true
-      become_user: "{{ nexus_user_name }}"
+      become: true     # ← FIX: file in home must be written as root
       lineinfile:
         create: yes
         dest: "/home/{{ nexus_user_name }}/.bashrc"
@@ -72,8 +76,7 @@
         line: "export NEXUS_HOME={{ nexus_directory_home }}"
 
     - name: Add run_as_user to Nexus.rc
-      become: true
-      become_user: "{{ nexus_user_name }}"
+      become: true     # ← FIX: nexus.rc owned by root initially
       lineinfile:
         create: yes
         dest: "{{ nexus_directory_home }}/bin/nexus.rc"
@@ -106,24 +109,25 @@
         - nexus_service_enabled
 
     - name: Create Nexus vmoptions
-      become: true
-      become_user: "{{ nexus_user_name }}"
+      become: true     # ← FIX: avoid permission denied
       template:
         dest: "{{ nexus_directory_home }}/bin/nexus.vmoptions"
         src: nexus.vmoptions.j2
+        owner: "{{ nexus_user_name }}"
+        group: "{{ nexus_user_group }}"
       register: nexus_config_changed
 
     - name: Create Nexus properties
-      become: true
-      become_user: "{{ nexus_user_name }}"
+      become: true     # ← FIX
       template:
         dest: "{{ nexus_directory_data }}/etc/nexus.properties"
         src: nexus.properties.j2
+        owner: "{{ nexus_user_name }}"
+        group: "{{ nexus_user_group }}"
       register: nexus_config_changed
 
     - name: Lower Nexus disk space threshold
-      become: true
-      become_user: "{{ nexus_user_name }}"
+      become: true     # ← FIX: system.properties is root-owned
       lineinfile:
         backrefs: yes
         dest: "{{ nexus_directory_home }}/etc/karaf/system.properties"
